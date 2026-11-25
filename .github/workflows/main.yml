@@ -1,4 +1,4 @@
-name: Build Sanx Vip APK
+name: Build APK
 
 on:
   push:
@@ -10,50 +10,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Unzip project
+      - name: Unzip
         run: |
-          ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
-          if [ -n "$ZIP_FILE" ]; then
-            unzip -o "$ZIP_FILE" -d temp_extract
-            INNER_DIR=$(find temp_extract -mindepth 1 -maxdepth 1 -type d | head -n 1)
-            if [ -f "$INNER_DIR/settings.gradle.kts" ]; then
-              cp -rf "$INNER_DIR"/. .
+          ZIP=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
+          if [ -n "$ZIP" ]; then
+            unzip -o "$ZIP" -d tmp
+            DIR=$(find tmp -mindepth 1 -maxdepth 1 -type d | head -n 1)
+            if [ -f "$DIR/settings.gradle.kts" ]; then
+              cp -rf "$DIR"/. .
             else
-              cp -rf temp_extract/. .
+              cp -rf tmp/. .
             fi
-            rm -rf temp_extract "$ZIP_FILE"
+            rm -rf tmp "$ZIP"
           fi
+          find . -name "*.gradle.kts" -exec sed -i '/google-services/d;/secrets/d;/debug.keystore/d;/storeFile/d' {} +
 
-      - name: Clean extra Google/Template plugins
-        run: |
-          find . -name "*.gradle.kts" -type f -exec sed -i '/google-services/d' {} +
-          find . -name "*.gradle.kts" -type f -exec sed -i '/secrets/d' {} +
-          find . -name "*.gradle.kts" -type f -exec sed -i '/debug.keystore/d' {} +
-          find . -name "*.gradle.kts" -type f -exec sed -i '/storeFile/d' {} +
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Setup Gradle 9.3.1
-        uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.3.1'
 
-      - name: Build Debug APK
+      - name: Build APK
         run: gradle assembleDebug --no-daemon
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: Sanx-Vip-APK
+          name: Sanx-Vip
           path: app/build/outputs/apk/debug/app-debug.apk
           
